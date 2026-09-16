@@ -31,7 +31,7 @@ var corsOrigins = builder.Configuration["Cors:Origins"]
     ?? [];
 if (corsOrigins.Length == 0)
 {
-    corsOrigins = ["http://localhost:3000"];
+    corsOrigins = ["https://www.autoalert.online/"];
 }
 
 builder.Services.AddCors(options =>
