@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using AutoAlertBackEnd.Context;
 using AutoAlertBackEnd.Seed;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -102,7 +103,10 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AutoAlertContext>();
     await db.Database.EnsureCreatedAsync();
 
-    if (builder.Configuration.GetValue<bool>("Seed:Enabled"))
+    var shouldSeed = builder.Configuration.GetValue<bool>("Seed:Enabled")
+        || !await db.Users.AnyAsync();
+
+    if (shouldSeed)
     {
         await DatabaseSeeder.SeedAsync(
             db,
@@ -118,15 +122,11 @@ forwardedHeadersOptions.KnownNetworks.Clear();
 forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.OAuthUsePkce();
-    });
-}
+    c.OAuthUsePkce();
+});
 
 app.UseCors("AllowSpecificOrigin");
 
@@ -151,5 +151,15 @@ app.Use(async (context, next) =>
     }
 });
 app.UseAuthorization();
+app.MapGet("/", () => Results.Ok(new
+{
+    status = "ok",
+    service = "AutoAlert"
+}));
+app.MapGet("/api", () => Results.Ok(new
+{
+    status = "ok",
+    service = "AutoAlert"
+}));
 app.MapControllers();
 app.Run();
