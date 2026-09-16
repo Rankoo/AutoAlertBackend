@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
+using AutoAlertBackEnd.Configuration;
 using AutoAlertBackEnd.Context;
 using AutoAlertBackEnd.Repositories;
 using AutoAlertBackEnd.NotificationDelivery;
@@ -12,12 +13,8 @@ namespace AutoAlertBackEnd
         // Extensión para registrar servicios externos (ej. DbContext, clientes, etc.)
         public static IServiceCollection AddExternal(this IServiceCollection services, IConfiguration _configuration)
         {
-            string connectionString = _configuration["ConnectionStrings:SQLConnectionStrings"] ?? string.Empty;
-
-            if (!string.IsNullOrWhiteSpace(connectionString))
-            {
-                services.AddDbContext<AutoAlertContext>(opts => opts.UseSqlServer(connectionString));
-            }
+            var connectionString = PostgresConnection.Resolve(_configuration);
+            services.AddDbContext<AutoAlertContext>(opts => opts.UseNpgsql(connectionString));
 
             // Register repositories
             services.AddScoped<IUserRepository, UserRepository>();

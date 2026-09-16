@@ -2,6 +2,7 @@
 using AutoAlertBackEnd.Configuration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
@@ -11,6 +12,12 @@ using AutoAlertBackEnd.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var renderPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(renderPort))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{renderPort}");
+}
+
 builder.Services.AddExternal(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -18,14 +25,22 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "AutoAlerBack", Version = "v1" });
 });
+var corsOrigins = builder.Configuration["Cors:Origins"]
+    ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    ?? [];
+if (corsOrigins.Length == 0)
+{
+    corsOrigins = ["http://localhost:3000"];
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin",
-        builder => builder
-            .WithOrigins("http://localhost:3000")
-            .AllowAnyMethod()  // Permitir cualquier metodo HTTP
+        policy => policy
+            .WithOrigins(corsOrigins)
+            .AllowAnyMethod()
             .AllowAnyHeader()
-            .AllowCredentials()); // Permitir cualquier cabecera
+            .AllowCredentials());
 });
 
 // Validate JWT config early to fail fast and avoid nullable warnings
@@ -82,13 +97,26 @@ builder.Services.AddAuthentication(x =>
 });
 var app = builder.Build();
 
-if (builder.Configuration.GetValue<bool>("Seed:Enabled"))
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
-    await DatabaseSeeder.SeedAsync(
-        scope.ServiceProvider.GetRequiredService<AutoAlertContext>(),
-        scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseSeeder"));
+    var db = scope.ServiceProvider.GetRequiredService<AutoAlertContext>();
+    await db.Database.EnsureCreatedAsync();
+
+    if (builder.Configuration.GetValue<bool>("Seed:Enabled"))
+    {
+        await DatabaseSeeder.SeedAsync(
+            db,
+            scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseSeeder"));
+    }
 }
+
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -102,7 +130,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowSpecificOrigin");
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 

@@ -24,6 +24,12 @@ namespace AutoAlertBackEnd.Context
         public DbSet<UserGroups> UserGroups { get; set; } = null!;
         public DbSet<Logs> Logs { get; set; } = null!;
 
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        {
+            configurationBuilder.Properties<DateTime>().HaveColumnType("timestamp without time zone");
+            configurationBuilder.Properties<DateTime?>().HaveColumnType("timestamp without time zone");
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -35,7 +41,7 @@ namespace AutoAlertBackEnd.Context
                 e.HasKey(x => x.Id);
                 e.Property(x => x.Name).IsRequired().HasMaxLength(100);
                 e.Property(x => x.Description).HasMaxLength(255);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
             });
 
             // Companies
@@ -47,7 +53,7 @@ namespace AutoAlertBackEnd.Context
                 e.Property(x => x.NIT).HasMaxLength(20);
                 e.Property(x => x.Address).HasMaxLength(150);
                 e.Property(x => x.PhoneNumber).HasMaxLength(20);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
 
                 e.HasOne(x => x.Group)
                  .WithMany(g => g.Companies)
@@ -63,7 +69,7 @@ namespace AutoAlertBackEnd.Context
                 e.Property(x => x.Name).IsRequired().HasMaxLength(100);
                 e.Property(x => x.Address).HasMaxLength(150);
                 e.Property(x => x.City).HasMaxLength(100);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
 
                 e.HasOne(x => x.Company)
                  .WithMany(c => c.Stores)
@@ -78,7 +84,7 @@ namespace AutoAlertBackEnd.Context
                 e.HasKey(x => x.Id);
                 e.Property(x => x.Name).IsRequired().HasMaxLength(50);
                 e.Property(x => x.Abbreviation).HasMaxLength(10);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
             });
 
             // Roles
@@ -88,7 +94,7 @@ namespace AutoAlertBackEnd.Context
                 e.HasKey(x => x.Id);
                 e.Property(x => x.Name).IsRequired().HasMaxLength(100);
                 e.Property(x => x.Description).HasMaxLength(255);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
             });
 
             // Users
@@ -108,7 +114,7 @@ namespace AutoAlertBackEnd.Context
                 e.Property(x => x.Position).HasMaxLength(100);
                 e.Property(x => x.IsActive).HasDefaultValue(true);
                 e.Property(x => x.ChangePassword).HasDefaultValue(true);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
 
                 e.HasOne(x => x.Role)
                  .WithMany(r => r.Users)
@@ -127,7 +133,7 @@ namespace AutoAlertBackEnd.Context
                 e.ToTable("Modules");
                 e.HasKey(x => x.Id);
                 e.Property(x => x.Name).IsRequired().HasMaxLength(100);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
             });
 
             // SubModules
@@ -149,7 +155,7 @@ namespace AutoAlertBackEnd.Context
                 e.ToTable("RoleSubModules");
                 e.HasKey(x => x.Id);
                 e.Property(x => x.IsEnabled).HasDefaultValue(false);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
 
                 e.HasOne(x => x.Role)
                  .WithMany(r => r.RoleSubModules)
@@ -168,7 +174,7 @@ namespace AutoAlertBackEnd.Context
                 e.ToTable("UserSubmodules");
                 e.HasKey(x => new { x.UserId, x.SubModuleId });
                 e.Property(x => x.IsEnabled).HasDefaultValue(false);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
 
                 e.HasOne(x => x.User)
                  .WithMany(u => u.UserSubmodules)
@@ -189,7 +195,7 @@ namespace AutoAlertBackEnd.Context
                 e.Property(x => x.Name).IsRequired().HasMaxLength(150);
                 e.Property(x => x.Provider).HasMaxLength(100);
                 e.Property(x => x.AccountNumber).HasMaxLength(100);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
 
                 e.HasOne(x => x.Store)
                  .WithMany(s => s.Services)
@@ -203,9 +209,9 @@ namespace AutoAlertBackEnd.Context
                 e.ToTable("Alerts");
                 e.HasKey(x => x.Id);
                 e.Property(x => x.DueDate).HasColumnType("date").IsRequired();
-                e.Property(x => x.Amount).HasColumnType("decimal(18,2)").IsRequired();
+                e.Property(x => x.Amount).HasColumnType("numeric(18,2)").IsRequired();
                 e.Property(x => x.Status).HasMaxLength(50).HasDefaultValue("Pendiente");
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
 
                 e.HasOne(x => x.Service)
                  .WithMany(s => s.Alerts)
@@ -223,7 +229,7 @@ namespace AutoAlertBackEnd.Context
                 e.Property(x => x.Title).HasMaxLength(150);
                 e.Property(x => x.Message).HasMaxLength(500);
                 e.Property(x => x.IsRead).HasDefaultValue(false);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
                 e.Property(x => x.AlertId).IsRequired();
                 e.Property(x => x.UserId).IsRequired();
 
@@ -244,7 +250,7 @@ namespace AutoAlertBackEnd.Context
                 e.ToTable("UserCompanies");
                 e.HasKey(x => new { x.UserId, x.CompanyId });
                 e.Property(x => x.AccessType).HasMaxLength(50).HasDefaultValue("view");
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
 
                 e.HasOne(x => x.User)
                  .WithMany(u => u.UserCompanies)
@@ -263,7 +269,7 @@ namespace AutoAlertBackEnd.Context
                 e.ToTable("UserGroups");
                 e.HasKey(x => new { x.UserId, x.GroupId });
                 e.Property(x => x.AccessType).HasMaxLength(50).HasDefaultValue("view");
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.CreatedAt).HasDefaultValueSql("NOW()");
 
                 e.HasOne(x => x.User)
                  .WithMany(u => u.UserGroups)
@@ -283,9 +289,9 @@ namespace AutoAlertBackEnd.Context
                 e.HasKey(x => x.Id);
                 e.Property(x => x.Action).IsRequired().HasMaxLength(100);
                 e.Property(x => x.TableName).IsRequired().HasMaxLength(100);
-                e.Property(x => x.OldValues).HasColumnType("nvarchar(max)");
-                e.Property(x => x.NewValues).HasColumnType("nvarchar(max)");
-                e.Property(x => x.Timestamp).HasDefaultValueSql("GETDATE()");
+                e.Property(x => x.OldValues).HasColumnType("text");
+                e.Property(x => x.NewValues).HasColumnType("text");
+                e.Property(x => x.Timestamp).HasDefaultValueSql("NOW()");
                 e.Property(x => x.IpAddress).HasMaxLength(50);
 
                 e.HasOne(x => x.User)
